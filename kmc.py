@@ -15,15 +15,23 @@ class SCLattice:
         self.dim = len(size)
         self.energy = np.random.normal(0., std_energy, size)
         self.temp = temp
+        self.__min = tuple(np.zeros(self.dim))
 
     def get_neighbors(self, state):
         mut_state = list(state)
         neighbors = []
+        size = self.size
         for d in range(self.dim):
             mut_state[d] -= 1
-            neighbors.append(tuple(mut_state))
+            s_new = tuple(mut_state)
+            condition = all(s>= mn for s, mn in zip(s_new, self.__min))
+            if condition:
+                neighbors.append(s_new)
             mut_state[d] += 2
-            neighbors.append(tuple(mut_state))
+            s_new = tuple(mut_state)
+            condition = all(s < mx for s, mx in zip(s_new, size))
+            if condition:
+                neighbors.append(s_new)
             mut_state[d] -= 1
         return neighbors
 
@@ -63,11 +71,20 @@ def kmc_run(s0, lattice, tau):
             t = tau
         states.append(curr)
         times.append(t)
-    return states, times
+    return states, np.array(times)
 
 
 if __name__ == '__main__':
+    import kmc_plot
+    import matplotlib.pyplot as plt
     T = 300
-    lattice = SCLattice((100, 100), 0.5*k_B*300, 1.0, 300.)
-    s0 = (50, 50)
-    states, times = kmc_run(s0, lattice, 100.)
+    lattice = SCLattice((5, 5), 0.5*k_B*300, 1.0, 300.)
+    s0 = (2, 2)
+    s_traj = []
+    t_traj = []
+    for i in range(10000):
+        print(i+1/100)
+        states, times = kmc_run(s0, lattice, 10.)
+        s_traj.append(states)
+        t_traj.append(times)
+    hist = kmc_plot.imshow_animate(s_traj, t_traj, np.linspace(0., 3., 100), lattice)
