@@ -14,6 +14,7 @@ class SCLattice:
         self.size = size
         self.dim = len(size)
         self.energy = np.random.normal(0., std_energy, size)
+        self.std_energy = std_energy
         self.temp = temp
         self.__min = tuple(np.zeros(self.dim))
 
@@ -43,6 +44,22 @@ class SCLattice:
             rates.append(self.rate * np.exp(delta))
         return np.array(rates)
 
+    def shuffle(self):
+        self.energy=np.random.normal(0., self.std_energy, self.size)
+
+    def two_dim_coarse_grain(self, new_size):
+        assert len(new_size) == 2 == self.dim
+        window = (int(self.size[0]/new_size[0]), int(self.size[1]/new_size[1]))
+        fe = np.zeros(new_size)
+        Z = np.exp(-self.energy/(k_B*T))
+        for i in range(new_size[0]):
+            for j in range(new_size[1]):
+                fe[i,j] = np.sum(Z[i*window[0]:(i+1)*window[0], j*window[1]:(j+1)*window[1]])
+        fe = -k_B * self.temp * np.log(fe)
+        self.energy = fe - np.mean(fe)
+        self.size = new_size
+        self.std_energy = np.std(fe)
+
 
 def kmc_step(s0, lattice):
     neighbors = lattice.get_neighbors(s0)
@@ -64,6 +81,7 @@ def kmc_run(s0, lattice, tau):
     curr = s0
     t = 0.
     states.append(curr)
+    times.append(t)
     while t < tau:
         curr, dt = kmc_step(curr, lattice)
         t += dt
@@ -75,16 +93,20 @@ def kmc_run(s0, lattice, tau):
 
 
 if __name__ == '__main__':
-    import kmc_plot
-    import matplotlib.pyplot as plt
+    import plot
     T = 300
-    lattice = SCLattice((5, 5), 0.5*k_B*300, 1.0, 300.)
-    s0 = (2, 2)
+    lattice = SCLattice((100, 100), 0., 1.0, T)
+    num_traj = 1000
+    t_max = 30
+    n_plot = 40
+    s0 = (50, 50)
     s_traj = []
     t_traj = []
-    for i in range(10000):
-        print(i+1/100)
-        states, times = kmc_run(s0, lattice, 10.)
+    target_times = np.linspace(0, t_max, n_plot)
+    for i in range(num_traj):
+        print(str(i + 1) + '/' + str(num_traj))
+        lattice.shuffle()
+        states, times = kmc_run(s0, lattice, t_max)
         s_traj.append(states)
         t_traj.append(times)
-    hist = kmc_plot.imshow_animate(s_traj, t_traj, np.linspace(0., 3., 100), lattice)
+    plt = plot.plot_mean_msd(s0, s_traj, t_traj, target_times)
