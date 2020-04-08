@@ -8,8 +8,8 @@ import matplotlib as mpl; mpl.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-import sample as smp
-from observables import calculate_rmsd
+from kmcGrid import sample as smp
+from kmcGrid.observables import calculate_rmsd
 
 
 def animate_populations(state_trajectories, time_trajectories, target_times, lattice, cmap='viridis'):

@@ -1,5 +1,6 @@
-""" Simple Rejection Free KMC Engine for grids
-Written by: Amro Dodin
+"""
+Lattice Classes for KMC Simulations
+Written By: Amro Dodin
 """
 
 import numpy as np
@@ -25,7 +26,7 @@ class SCLattice:
         for d in range(self.dim):
             mut_state[d] -= 1
             s_new = tuple(mut_state)
-            condition = all(s>= mn for s, mn in zip(s_new, self.__min))
+            condition = all(s >= mn for s, mn in zip(s_new, self.__min))
             if condition:
                 neighbors.append(s_new)
             mut_state[d] += 2
@@ -51,7 +52,7 @@ class SCLattice:
         assert len(new_size) == 2 == self.dim
         window = (int(self.size[0]/new_size[0]), int(self.size[1]/new_size[1]))
         fe = np.zeros(new_size)
-        Z = np.exp(-self.energy/(k_B*T))
+        Z = np.exp(-self.energy/(k_B*self.temp))
         for i in range(new_size[0]):
             for j in range(new_size[1]):
                 fe[i,j] = np.sum(Z[i*window[0]:(i+1)*window[0], j*window[1]:(j+1)*window[1]])
@@ -60,53 +61,9 @@ class SCLattice:
         self.size = new_size
         self.std_energy = np.std(fe)
 
-
-def kmc_step(s0, lattice):
-    neighbors = lattice.get_neighbors(s0)
-    ks = lattice.get_rates(s0)
-    k_tot = np.sum(ks)
-    k_cum = np.cumsum(ks)
-    assert len(k_cum) == len(neighbors)
-    assert k_cum[-1] == k_tot
-    u = np.random.random()
-    s_next = neighbors[np.argmax( k_tot * u <= k_cum)]
-    u_time = np.random.random()
-    dt = -np.log(u_time)/k_tot
-    return s_next, dt
-
-
-def kmc_run(s0, lattice, tau):
-    states = []
-    times = []
-    curr = s0
-    t = 0.
-    states.append(curr)
-    times.append(t)
-    while t < tau:
-        curr, dt = kmc_step(curr, lattice)
-        t += dt
-        if t > tau:
-            t = tau
-        states.append(curr)
-        times.append(t)
-    return states, np.array(times)
-
-
-if __name__ == '__main__':
-    import plot
-    T = 300
-    lattice = SCLattice((100, 100), 0., 1.0, T)
-    num_traj = 1000
-    t_max = 30
-    n_plot = 40
-    s0 = (50, 50)
-    s_traj = []
-    t_traj = []
-    target_times = np.linspace(0, t_max, n_plot)
-    for i in range(num_traj):
-        print(str(i + 1) + '/' + str(num_traj))
-        lattice.shuffle()
-        states, times = kmc_run(s0, lattice, t_max)
-        s_traj.append(states)
-        t_traj.append(times)
-    plt = plot.plot_mean_msd(s0, s_traj, t_traj, target_times)
+    def histogram_energy(self, thermal=True, **kwargs):
+        if thermal:
+            Es = self.energy/(k_B*self.temp)
+        else:
+            Es = self.energy
+        return np.histogram(Es, **kwargs)

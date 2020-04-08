@@ -5,7 +5,7 @@ Written By: Amro Dodin
 """
 
 import numpy as np
-from observables import calculate_msd, calculate_rmsd
+from kmcGrid.observables import calculate_msd, calculate_rmsd
 
 
 def sample_trajectories(state_trajectories, time_trajectories, target_times, lattice):
