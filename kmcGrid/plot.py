@@ -81,17 +81,41 @@ def plot_rmsd_trajectories(s0, state_trajectories, time_trajectories, target_tim
 
 
 def plot_mean_msd(s0, state_trajectories, time_trajectories, target_times, ave_window=None,
-                  figkwargs=fig_spec, axis_rect=axis_rect,
-                  linekwargs={'color': 'w', 'linewidth': 3.}, imkwargs={}, fname=None):
+                  figkwargs=fig_spec, axis_rect=axis_rect, fname=None, slope_fname=None, target_axes=None):
     timed_samples = smp.sample_msd(s0, state_trajectories, time_trajectories, target_times)
     mean_samples = np.mean(timed_samples, axis=1)
 
-    fig = plt.figure(**figkwargs)
-    ax = fig.add_axes(axis_rect)
-    ax.plot(target_times, mean_samples)
-    if ave_window is not None:
-        fig = plt.figure(**figkwargs)
-        ax = fig.add_axes(axis_rect)
-        slopes = window_slope(target_times, mean_samples, ave_window)
-        ax.plot(target_times[0:-ave_window], slopes)
+    if target_axes is None:
+        ax1 = None
+        ax2 = None
+    elif type(target_axes) is tuple:
+        ax1 = target_axes[0]
+        ax2 = target_axes[1]
+
+    if ax1 is None:
+        fig1 = plt.figure(**figkwargs)
+        ax1 = fig1.add_axes(axis_rect)
+    else:
+        fig1 = ax1.figure
+    ax1.plot(target_times, mean_samples)
+
+    if fname is not None:
+        fig1.savefig(fname)
+
+    if ave_window is None:
+        plt.show()
+        return ax1
+
+    if ax2 is None:
+        fig2 = plt.figure(**figkwargs)
+        ax2 = fig2.add_axes(axis_rect)
+    else:
+        fig2 = ax2.figure
+    slopes = window_slope(target_times, mean_samples, ave_window)
+    ax2.plot(target_times[0:-ave_window], slopes)
+
+    if slope_fname is not None:
+        fig2.savefig(slope_fname)
+
     plt.show()
+    return ax1, ax2

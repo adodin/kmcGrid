@@ -15,6 +15,9 @@ def sample_trajectories(state_trajectories, time_trajectories, target_times, lat
         count = np.zeros(lattice.size)
         for ss, ts in zip(state_trajectories, time_trajectories):
             index = np.argmax(t <= ts)
+            if index == 0:
+                index = 1
+            index = index - 1
             count[ss[index]] += 1
         counts.append(count)
     return counts
@@ -36,6 +39,9 @@ def sample_observable(state_trajectories, time_trajectories, target_times, calcu
         timed_samples = []
         for ms, ts in zip(observable_trajectories, time_trajectories):
             index = np.argmax(t <= ts)
+            if index == 0:
+                index = 1
+            index = index - 1
             timed_samples.append(ms[index])
         observable_samples.append(timed_samples)
     return observable_samples
