@@ -9,15 +9,15 @@ import matplotlib.pyplot as plt
 
 from kmcGrid import sample as smp
 from kmcGrid.observables import window_slope
+from _plot_defaults import fig_spec, font_spec, axis_rect
 
 # Set Default Font Parameters
-font = {'family': 'serif', 'size': 30}
-mpl.rc('font', **font)
+mpl.rc('font', **font_spec)
 
 
 def plot_2d_lattice(lattice, line_increment=None, axis_scale=(1, 1), axis_units='nm',
-                    figkwargs={'figsize': [10, 10]}, axis_rect = [0.15, 0.15, 0.8, 0.8],
-                    linekwargs={'color': 'w', 'linewidth': 3.},  imkwargs={}, fname=None):
+                    figkwargs=fig_spec, axis_rect=axis_rect,
+                    linekwargs={'color': 'w', 'linewidth': 3.}, imkwargs={}, fname=None):
     assert lattice.dim == 2
     sx, sy = lattice.size
     sx = sx * axis_scale[0]
@@ -57,12 +57,41 @@ def plot_2d_lattice(lattice, line_increment=None, axis_scale=(1, 1), axis_units=
     return ax
 
 
-def plot_mean_msd(s0, state_trajectories, time_trajectories, target_times, ave_window=None):
+def plot_rmsd_trajectories(s0, state_trajectories, time_trajectories, target_times, num_plotted=3,
+                           figkwargs=fig_spec, axis_rect=axis_rect,
+                           linekwargs={'linewidth': 3.}, fname=None):
+    timed_samples = smp.sample_msd(s0, state_trajectories, time_trajectories, target_times)
+    fig = plt.figure(**figkwargs)
+    ax = fig.add_axes(axis_rect)
+    t_space = int(len(target_times)/num_plotted)
+    rmsd_max = 1.5*np.std(timed_samples[-1])
+    rmsd_hists = []
+    for t in range(0, len(timed_samples), t_space):
+        hist, bins = np.histogram(timed_samples[t], bins=10, range=(0, rmsd_max))
+        rmsd_hists.append(hist)
+    bin_mids = []
+    for i in range(len(bins)-1):
+        bin_mids.append(0.5*(bins[i] + bins[i+1]))
+    for h in rmsd_hists:
+        ax.plot(bin_mids, h, **linekwargs)
+    if fname is not None:
+        fig.savefig(fname)
+    plt.show()
+    return ax
+
+
+def plot_mean_msd(s0, state_trajectories, time_trajectories, target_times, ave_window=None,
+                  figkwargs=fig_spec, axis_rect=axis_rect,
+                  linekwargs={'color': 'w', 'linewidth': 3.}, imkwargs={}, fname=None):
     timed_samples = smp.sample_msd(s0, state_trajectories, time_trajectories, target_times)
     mean_samples = np.mean(timed_samples, axis=1)
-    plt.plot(target_times, mean_samples)
+
+    fig = plt.figure(**figkwargs)
+    ax = fig.add_axes(axis_rect)
+    ax.plot(target_times, mean_samples)
     if ave_window is not None:
-        fig = plt.figure()
+        fig = plt.figure(**figkwargs)
+        ax = fig.add_axes(axis_rect)
         slopes = window_slope(target_times, mean_samples, ave_window)
-        plt.plot(target_times[0:-ave_window], slopes)
+        ax.plot(target_times[0:-ave_window], slopes)
     plt.show()
